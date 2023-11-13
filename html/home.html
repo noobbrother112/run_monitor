@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+
+<body>
+    {{ range $key, $value := .Datafields }}
+        <p>{{ $key }}</p>
+        <p>{{ $value }}</p>
+    {{ end }}
+</body>
+</html>
