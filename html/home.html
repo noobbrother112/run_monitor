@@ -8,7 +8,8 @@
 <body>
     {{ range $key, $value := .Datafields }}
         <p>{{ $key }}</p>
-        <p>{{ $value }}</p>
+        <p>{{ $value.id }}</p>
+        <p>{{ $value.char }}</p>
     {{ end }}
 </body>
 </html>

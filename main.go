@@ -19,7 +19,8 @@ type data struct {
 	Datafields map[string]interface{}
 }
 
-func home(c echo.Context) error {
+func handle_home(c echo.Context) error {
+	//db.Setdb()
 	t_data := data{
 		Datafields: map[string]any{
 			"081": map[string]any{
@@ -45,7 +46,7 @@ func main() {
 	}
 
 	e := echo.New()
-	e.GET("/", home).Name = "sukho"
+	e.GET("/", handle_home)
 	e.Renderer = t
 	e.Logger.Fatal(e.Start(":1323")) // localhost:1323
 }
