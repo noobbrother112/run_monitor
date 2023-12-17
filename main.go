@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/labstack/echo"
+	"github.com/labstack/gommon/log"
+	"github.com/noobbrother112/run_monitor/db"
 	"html/template"
 	"io"
 	"net/http"
@@ -19,9 +22,9 @@ type data struct {
 	Datafields map[string]interface{}
 }
 
-func handle_home(c echo.Context) error {
-	//db.Setdb()
-	t_data := data{
+func handleHome(c echo.Context) error {
+	db.Setdb()
+	tData := data{
 		Datafields: map[string]any{
 			"081": map[string]any{
 				"id":   1,
@@ -37,16 +40,33 @@ func handle_home(c echo.Context) error {
 			},
 		},
 	}
-	return c.Render(http.StatusOK, "home.html", t_data)
+	return c.Render(http.StatusOK, "home.html", tData)
+}
+
+func addLog(c echo.Context) error {
+	jsonBody := make(map[string]interface{})
+	err := json.NewDecoder(c.Request().Body).Decode(&jsonBody)
+	if err != nil {
+
+		log.Error("empty json body")
+		return nil
+	}
+	// 들어온 json data 검증
+	if jsonBody["code"] != nil {
+		db.AddLog(jsonBody)
+	}
+	return c.String(200, "done")
 }
 
 func main() {
+	db.Setdb()
 	t := &Template{
 		templates: template.Must(template.ParseGlob("html/*.html")),
 	}
 
 	e := echo.New()
-	e.GET("/", handle_home)
+	e.GET("/", handleHome)
+	e.POST("/log", addLog)
 	e.Renderer = t
 	e.Logger.Fatal(e.Start(":1323")) // localhost:1323
 }

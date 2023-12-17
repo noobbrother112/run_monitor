@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
+	"time"
 )
 
 type Pdb struct {
@@ -71,36 +72,31 @@ func checkError(err error) {
 func Setdb() {
 	pgDb := Pdb{}
 	pgDb.SetDbObj(getDb("./db/db.yaml"))
-	pgDb.SetTable("test_tbl")
+	pgDb.SetTable("id")
 
 	defer pgDb.dbObj.Close()
 	dbPing(pgDb.dbObj)
 
-	dropTable(pgDb)
-	createTbl(pgDb)
-	insertTbl(pgDb)
+	//insertTbl(pgDb)
 
 	rows := selectTbl(pgDb)
 	defer rows.Close()
 
-	printRows(rows)
-	dropTable(pgDb)
+	//printRows(rows)
 }
 
 func printRows(rows *sql.Rows) {
-	var id int
-	var name string
-	var quantity int
+	var id string
+	var server string
+	var computer string
 
-	for rows.Next() {
-		switch err := rows.Scan(&id, &name, &quantity); err {
-		case sql.ErrNoRows:
-			fmt.Println("No rows were returned")
-		case nil:
-			fmt.Printf("%d, %s, %d\n", id, name, quantity)
-		default:
-			checkError(err)
-		}
+	switch err := rows.Scan(&id, &server, &computer); err {
+	case sql.ErrNoRows:
+		fmt.Println("No rows were returned")
+	case nil:
+		fmt.Printf("%s, %s, %s", id, server, computer)
+	default:
+		checkError(err)
 	}
 }
 
@@ -112,12 +108,11 @@ func selectTbl(pgDb Pdb) *sql.Rows {
 }
 
 func insertTbl(pgDb Pdb) {
-	stmtIns := fmt.Sprintf("INSERT INTO %s (name, quantity) VALUES ($1, $2);", pgDb.table)
-	_, err := pgDb.dbObj.Exec(stmtIns, "test0", 100)
+	stmtIns := fmt.Sprintf("INSERT INTO %s (id, computer) VALUES ($1, $2);", pgDb.table)
+	_, err := pgDb.dbObj.Exec(stmtIns, "sukho8757@gmail.com", 58)
 	checkError(err)
-	_, err = pgDb.dbObj.Exec(stmtIns, "test1", 101)
+	_, err = pgDb.dbObj.Exec(stmtIns, "joke@nana.com", 57)
 	checkError(err)
-	fmt.Println("Inserted 2 records")
 }
 
 func createTbl(pgDb Pdb) {
@@ -138,4 +133,38 @@ func dbPing(db *sql.DB) {
 	err := db.Ping()
 	checkError(err)
 	fmt.Println("Successfully created connection to database")
+}
+
+func AddLog(jsonData map[string]interface{}) {
+	pgDb := Pdb{}
+	pgDb.SetDbObj(getDb("./db/db.yaml"))
+	defer pgDb.dbObj.Close()
+	stmtIns := fmt.Sprintf("SELECT * FROM %s WHERE id=$1 AND server=$2;", "id")
+	rows, err := pgDb.dbObj.Query(stmtIns, jsonData["id"], jsonData["server"])
+	checkError(err)
+	if rows.Next() {
+		var (
+			index    int
+			id       string
+			server   string
+			done     bool
+			date     time.Time
+			computer string
+		)
+		rows.Scan(&index, &id, &server, &done, &date, &computer)
+		if computer != jsonData["computer"] {
+			stmtIns2 := fmt.Sprintf("UPDATE %s SET computer=$3 WHERE id=$1 AND server=$2;", "id")
+			_, err := pgDb.dbObj.Exec(stmtIns2, jsonData["id"], jsonData["server"], jsonData["computer"])
+			checkError(err)
+		}
+		stmtIns3 := fmt.Sprintf("INSERT INTO %s (id_index, code, detail, date) VALUES ($1, $2, $3, $4);", "log")
+		_, err := pgDb.dbObj.Exec(stmtIns3, index, jsonData["code"], jsonData["detail"], time.Now())
+		checkError(err)
+	} else {
+		stmtIns2 := fmt.Sprintf("INSERT INTO %s (id, server, done, date, computer) VALUES ($1, $2, $3, $4, $5);", "id")
+		_, err := pgDb.dbObj.Exec(stmtIns2, jsonData["id"], jsonData["server"], false, time.Now(), jsonData["computer"])
+		checkError(err)
+	}
+	defer rows.Close()
+
 }
